@@ -1,8 +1,11 @@
 from django.shortcuts import render
+from rest_framework.response import Response
 
 # Create your views here.
 # Django shell example
 from .models import *
+from rest_framework import viewsets, status
+from .serializers import InstructorSerializer
 
 # get() usage
 instructor = Instructor.objects.get(email='ravikarthika2000@gmail.com')
@@ -111,3 +114,34 @@ lessons = Lesson.objects.filter(title__startswith='Introduction')
 # Find lessons with titles ending with 'Basics'
 lesson = Lesson.objects.filter(title__endswith='Basics')
 
+
+
+class InstructorViewSet(viewsets.ModelViewSet):
+    queryset = Instructor.objects.all()
+    serializer_class = InstructorSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def retrieve(self, request, *args, **kwargs):
+        instructor = self.get_object()
+        serializer = self.get_serializer(instructor)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+        # Override the partial_update method (PATCH)
+
+    def partial_update(self, request, *args, **kwargs):
+        instructor = self.get_object()
+        serializer = self.get_serializer(instructor, data=request.data, partial=True)
+
+        # Validate the data
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
