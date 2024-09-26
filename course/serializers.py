@@ -1,18 +1,33 @@
+from fuzzywuzzy import fuzz
 from rest_framework import serializers
 from .models import Instructor, Student, Course, Lesson, Assignment, Enrollment, Progress
 from datetime import date
+from nltk.tokenize import word_tokenize
 
 
 class InstructorSerializer(serializers.ModelSerializer):
+    name_fuzz = serializers.SerializerMethodField()
+    # name_tokenize = serializers.SerializerMethodField()
     class Meta:
         model = Instructor
-        fields = ['first_name', 'last_name', 'email', 'bio']
+        fields = ['first_name', 'last_name', 'email', 'bio','name_fuzz']
+
+    def to_internal_value(self, data):
+        return super().to_internal_value(data)
 
     # Custom validation for email
     def validate_email(self, value):
         if not value.endswith('@example.com'):
             raise serializers.ValidationError("Email must be an '@example.com' email.")
         return value
+
+    def get_name_fuzz(self,obj):
+        # fuzz.ratio(obj.first_name, obj.last_name)
+        # fuzz.partial_ratio(obj.first_name, obj.last_name)
+       return fuzz.token_sort_ratio(obj.first_name,obj.last_name)
+
+    # def get_name_tokenize(self, obj):
+    #     return word_tokenize(obj.first_name)
 
 
 class StudentSerializer(serializers.ModelSerializer):
@@ -25,6 +40,17 @@ class StudentSerializer(serializers.ModelSerializer):
         if value > date.today():
             raise serializers.ValidationError("Enrollment date cannot be in the future.")
         return value
+
+    def to_representation(self, instance):
+        return {
+            'first_name':instance.first_name,
+            'last_name': instance.last_name,
+            'email': instance.email,
+            'enrollment_date': instance.enrollment_date,
+        }
+
+    def to_internal_value(self, data):
+        return super().to_internal_value(data)
 
 
 class CourseSerializer(serializers.ModelSerializer):
@@ -41,12 +67,17 @@ class CourseSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("End date cannot be before start date.")
         return data
 
+    def to_internal_value(self, data):
+        return super().to_internal_value(data)
+
 
 class LessonSerializer(serializers.ModelSerializer):
     class Meta:
         model = Lesson
         fields = ['title', 'content', 'course']
 
+    def to_internal_value(self, data):
+        return super().to_internal_value(data)
 
 class AssignmentSerializer(serializers.ModelSerializer):
     class Meta:
